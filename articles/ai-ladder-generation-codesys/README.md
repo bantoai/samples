@@ -3,7 +3,7 @@
 記事「生成AIにラダー回路を書かせてみた：タンク設備、試験11項目が全部通った（CODESYSで動作確認）」のサンプルです。
 生成AI にプロンプトだけでタンク設備のラダー（CODESYS の PLCopen XML）を書かせ、取り込み・ビルド・模擬設備での試験（11項目）をしました。
 
-- 記事：（公開後にリンクします）
+- 記事：https://zenn.dev/bantoai/articles/ai-ladder-generation-codesys
 
 ## 中身
 
