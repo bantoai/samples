@@ -9,12 +9,19 @@
 
 | 記事 | 軸 | フォルダ | 動作環境 |
 |---|---|---|---|
-| 生成AIにラダー回路を書かせてみた（タンク設備）（公開準備中） | AI×ラダー生成 | [articles/ai-ladder-generation-codesys](articles/ai-ladder-generation-codesys) | CODESYS V3.5 SP22 Patch 4 |
+| [生成AIにラダー回路を書かせてみた（タンク設備）](https://zenn.dev/bantoai/articles/ai-ladder-generation-codesys) | AI×ラダー生成 | [articles/ai-ladder-generation-codesys](articles/ai-ladder-generation-codesys) | CODESYS V3.5 SP22 Patch 4 |
+
+## 共通の手順
+
+| 手順 | 中身 |
+|---|---|
+| [CODESYS のはじめかた](guides/codesys-quickstart.md) | CODESYS で自己保持回路を動かすまでと、PLCopen XML の取り込み方 |
 
 ## フォルダ構成
 
 ```
 articles/<slug>/   記事ごとのサンプル（記事を書いた時点の写し。公開後は原則変えない）
+guides/            記事をまたいで使う手順（随時更新）
 tools/             記事をまたいで育てている道具
 ```
 
