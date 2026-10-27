@@ -1,0 +1,258 @@
+あなたは制御設計者です。次の仕様のタンク設備を制御するラダーを、CODESYS V3.5 で取り込める PLCopen XML で書いてください。
+書き方は「取説」に従い、骨組みの ★ の所だけを書いてください。説明は不要です。XML だけを出してください。
+
+# 取説
+
+## 1. ルール
+
+1. 出力は PLCopen XML（`tc6_0200`）の `project` 全体を1ファイルで出す。POU は `PLC_PRG`（`pouType="program"`、言語は LD）
+2. `<LD>` の先頭に `<!--ObjectVersion: LD2-->` を書く（これで新しいラダーエディタ LD2 で開く。LD2 は変数コメントが接点の上に出て読みやすい）
+3. ParallelBranch・ObjectId・ProjectStructure は書かない
+4. 座標（`position`）はすべて `x="0" y="0"`。配置は CODESYS が並べ直す
+5. 並列（OR）は、受け側の `connectionPointIn` に `<connection refLocalId="…"/>` を複数書いて表す。分岐の記号は要らない
+6. 属性は省略せずに全部書く（接点：`negated` `storage` `edge`、コイル：`negated` `storage`、ボックスの端子：`negated` `edge`）
+7. 入出力の変数はグローバル変数リスト `GVL_IO` にある。`GVL_IO.xStartPB` のように GVL 名を付けて参照する。`GVL_IO` は作成済みなので出力に含めない
+8. 内部で使う変数（前回値・自己保持の内部リレー・タイマのインスタンスなど）は、`PLC_PRG` の `localVars` に宣言する。`documentation` に日本語の説明を書く
+9. TON などのボックスは、**使わない出力（ET など）を書かない**（書くと LD2 で「At most one output can be connected.」と出て開けない）
+10. ラングは1つの `<LD>` の中に順に並べる。各ラングの先頭に `comment`（ラングの説明）と `vendorElement`（networktitle）を置く
+11. 左の母線（`leftPowerRail localId="0"`）は最初に1つだけ。各ラングの最初の要素は `refLocalId="0"` につなぐ。右の母線（`rightPowerRail localId="2147483646"`）は最後に1つだけ
+12. `localId` は全体で重ならない整数を、上から順に振る
+
+## 2. 骨組み
+
+`★` の所だけを書く。それ以外はこのまま使う。
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://www.plcopen.org/xml/tc6_0200">
+  <fileHeader companyName="" productName="CODESYS" productVersion="CODESYS V3.5 SP22 Patch 4" creationDateTime="2026-10-25T00:00:00" />
+  <contentHeader name="★プロジェクト名" modificationDateTime="2026-10-25T00:00:00">
+    <coordinateInfo>
+      <fbd>
+        <scaling x="1" y="1" />
+      </fbd>
+      <ld>
+        <scaling x="1" y="1" />
+      </ld>
+      <sfc>
+        <scaling x="1" y="1" />
+      </sfc>
+    </coordinateInfo>
+  </contentHeader>
+  <types>
+    <dataTypes />
+    <pous>
+      <pou name="PLC_PRG" pouType="program">
+        <interface>
+          <localVars>
+            ★内部変数（下の「変数の宣言」の形で）
+          </localVars>
+        </interface>
+        <body>
+          <LD>
+            <!--ObjectVersion: LD2-->
+            <leftPowerRail localId="0">
+              <position x="0" y="0" />
+              <connectionPointOut formalParameter="none" />
+            </leftPowerRail>
+            ★ラング（「ラングの先頭」＋接点・コイル・ボックス）を順に並べる
+            <rightPowerRail localId="2147483646">
+              <position x="0" y="0" />
+              <connectionPointIn />
+            </rightPowerRail>
+          </LD>
+        </body>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations />
+  </instances>
+</project>
+```
+
+## 3. 要素の書き方
+
+### 変数の宣言（localVars の中）
+
+```xml
+<variable name="xMixSelf">
+  <type>
+    <BOOL />
+  </type>
+  <documentation>
+    <xhtml xmlns="http://www.w3.org/1999/xhtml"> 各個：撹拌M 運転（自己保持） </xhtml>
+  </documentation>
+</variable>
+<variable name="tonMix">
+  <type>
+    <derived name="TON" />
+  </type>
+  <documentation>
+    <xhtml xmlns="http://www.w3.org/1999/xhtml"> 撹拌時間 </xhtml>
+  </documentation>
+</variable>
+```
+
+### ラングの先頭（ラングごとに必ず置く）
+
+```xml
+<comment localId="1" height="0" width="0">
+  <position x="0" y="0" />
+  <content>
+    <xhtml xmlns="http://www.w3.org/1999/xhtml">撹拌M 各個運転（自己保持）</xhtml>
+  </content>
+</comment>
+<vendorElement localId="2">
+  <position x="0" y="0" />
+  <alternativeText>
+    <xhtml xmlns="http://www.w3.org/1999/xhtml" />
+  </alternativeText>
+  <addData>
+    <data name="http://www.3s-software.com/plcopenxml/fbdelementtype" handleUnknown="implementation">
+      <ElementType xmlns="">networktitle</ElementType>
+    </data>
+  </addData>
+</vendorElement>
+```
+
+### 例1：自己保持（並列＝OR）
+
+入PB または 自分自身 → 切PB の b接点 → コイル。3 と 4 の両方を 5 が受けているのが並列。
+
+```xml
+<contact localId="3" negated="false" storage="none" edge="none">
+  <position x="0" y="0" />
+  <connectionPointIn>
+    <connection refLocalId="0" />
+  </connectionPointIn>
+  <connectionPointOut />
+  <variable>GVL_IO.xMixOnPB</variable>
+</contact>
+<contact localId="4" negated="false" storage="none" edge="none">
+  <position x="0" y="0" />
+  <connectionPointIn>
+    <connection refLocalId="0" />
+  </connectionPointIn>
+  <connectionPointOut />
+  <variable>xMixSelf</variable>
+</contact>
+<contact localId="5" negated="true" storage="none" edge="none">
+  <position x="0" y="0" />
+  <connectionPointIn>
+    <connection refLocalId="3" />
+    <connection refLocalId="4" />
+  </connectionPointIn>
+  <connectionPointOut />
+  <variable>GVL_IO.xMixOffPB</variable>
+</contact>
+<coil localId="6" negated="false" storage="none">
+  <position x="0" y="0" />
+  <connectionPointIn>
+    <connection refLocalId="5" />
+  </connectionPointIn>
+  <connectionPointOut />
+  <variable>xMixSelf</variable>
+</coil>
+```
+
+- 出力を2つ並列に出すときは、2つのコイルの `connectionPointIn` を同じ要素につなぐ
+- b接点は `negated="true"`
+
+### 例2：タイマ（TON）
+
+PT は `inVariable` で渡す。Q の後ろのコイルは `formalParameter="Q"` を付けてつなぐ。**ET は書かない。**
+
+```xml
+<contact localId="10" negated="false" storage="none" edge="none">
+  <position x="0" y="0" />
+  <connectionPointIn>
+    <connection refLocalId="0" />
+  </connectionPointIn>
+  <connectionPointOut />
+  <variable>xStepMix</variable>
+</contact>
+<inVariable localId="11" negated="false">
+  <position x="0" y="0" />
+  <connectionPointOut />
+  <expression>T#10S</expression>
+</inVariable>
+<block localId="12" typeName="TON" instanceName="tonMix">
+  <position x="0" y="0" />
+  <inputVariables>
+    <variable formalParameter="IN" negated="false" edge="none">
+      <connectionPointIn>
+        <connection refLocalId="10" />
+      </connectionPointIn>
+    </variable>
+    <variable formalParameter="PT" negated="false" edge="none">
+      <connectionPointIn>
+        <connection refLocalId="11" />
+      </connectionPointIn>
+    </variable>
+  </inputVariables>
+  <inOutVariables />
+  <outputVariables>
+    <variable formalParameter="Q" negated="false">
+      <connectionPointOut />
+    </variable>
+  </outputVariables>
+</block>
+<coil localId="13" negated="false" storage="none">
+  <position x="0" y="0" />
+  <connectionPointIn>
+    <connection refLocalId="12" formalParameter="Q" />
+  </connectionPointIn>
+  <connectionPointOut />
+  <variable>xMixDone</variable>
+</coil>
+```
+
+### 確かめた形・まだの形
+
+| 形 | 状態 |
+|---|---|
+| a接点・b接点、通常のコイル | 確認済み |
+| 並列（入力側・出力側）、直列の枝どうしの並列、並列の直後がコイル | 確認済み |
+| 複数のラング | 確認済み（27 ラング） |
+| TON（IN・PT・Q。ET なし） | 確認済み（5 個） |
+| 立ち上がりは「今の値 AND NOT 前回値」＋前回値を最後のラングで保存、で書く | 確認済み（タンクの参考ラダー） |
+| 立ち上がり／立ち下がり接点（`edge="rising"` など）、セット／リセットコイル（`storage="set"` など）、TOF・CTU など他のボックス | **未確認**。使うなら先に小さな XML で取り込みを試す |
+
+# I/O 表
+
+変数はグローバル変数リスト `GVL_IO` にある。この変数名をそのまま使い、`GVL_IO.` を付けて参照すること（例：`GVL_IO.xModeAuto`）。向きは PLC から見たもの。`xModeAuto` は TRUE が連続、FALSE が各個。
+
+| 名前 | 向き | 区分 | 意味 |
+|---|---|---|---|
+| `xModeAuto` | 入力 | 操作盤 | モード（連続/各個） |
+| `xStartPB` | 入力 | 操作盤 | 起動PB |
+| `xStopPB` | 入力 | 操作盤 | 停止PB |
+| `xResetPB` | 入力 | 操作盤 | リセットPB |
+| `xFillOpenPB` | 入力 | 操作盤 | 給水弁 開PB |
+| `xFillClosePB` | 入力 | 操作盤 | 給水弁 閉PB |
+| `xDrainOpenPB` | 入力 | 操作盤 | 排水弁 開PB |
+| `xDrainClosePB` | 入力 | 操作盤 | 排水弁 閉PB |
+| `xMixOnPB` | 入力 | 操作盤 | 撹拌M 入PB |
+| `xMixOffPB` | 入力 | 操作盤 | 撹拌M 切PB |
+| `xFillOpenLS` | 入力 | 設備 | 給水弁 開端 |
+| `xFillClosedLS` | 入力 | 設備 | 給水弁 閉端 |
+| `xDrainOpenLS` | 入力 | 設備 | 排水弁 開端 |
+| `xDrainClosedLS` | 入力 | 設備 | 排水弁 閉端 |
+| `xMixRunFB` | 入力 | 設備 | 撹拌M 運転中 |
+| `xMixFault` | 入力 | 設備 | 撹拌M 故障 |
+| `xLevelHigh` | 入力 | 設備 | 上限LS |
+| `xLevelLow` | 入力 | 設備 | 下限LS |
+| `xFillValveCmd` | 出力 | 設備 | 給水弁 開指令 |
+| `xDrainValveCmd` | 出力 | 設備 | 排水弁 開指令 |
+| `xMixMotorCmd` | 出力 | 設備 | 撹拌M 運転指令 |
+| `xRunLamp` | 出力 | 操作盤 | 運転中ランプ |
+| `xFaultLamp` | 出力 | 操作盤 | 異常ランプ |
+
+# 動きの仕様
+
+- **連続モード**：待機中に起動PB → 給水 → 上限LS で撹拌（10秒）→ 排水 → 下限LS で待機に戻る
+- **各個モード**：開PB・入PB で自己保持、閉PB・切PB で解除。モードを切り替えたら全出力 OFF
+- **停止PB**：どの状態でも全出力 OFF。リセットPB で待機に戻る
+- **異常**：撹拌モータの故障、または弁の開指令（閉指令）から5秒たっても開端（閉端）が来ない → 全出力 OFF、異常ランプ ON。異常が消えた後のリセットPB で待機に戻る
+- **運転中ランプ**：連続運転の給水・撹拌・排水の間、または各個モードでどれかの出力が ON の間

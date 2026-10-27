@@ -9,7 +9,7 @@
 
 | 記事 | 軸 | フォルダ | 動作環境 |
 |---|---|---|---|
-| （準備中） | | | |
+| 生成AIにラダー回路を書かせてみた（タンク設備）（公開準備中） | AI×ラダー生成 | [articles/ai-ladder-generation-codesys](articles/ai-ladder-generation-codesys) | CODESYS V3.5 SP22 Patch 4 |
 
 ## フォルダ構成
 
