@@ -1,0 +1,18 @@
+# CODESYS のプロジェクト本体は置かない（バイナリで、作った人の情報が入りうるため。要るなら Release に添付する）
+*.project
+*.projectarchive
+*.library
+# CODESYS のビルド中間ファイル・個人設定・ロック
+*.bootinfo
+*.bootinfo_guids
+*.compileinfo
+*.precompilecache
+*.opt
+*.~u
+*.project.bak
+# Python
+__pycache__/
+.venv/
+# OS
+Thumbs.db
+.DS_Store
